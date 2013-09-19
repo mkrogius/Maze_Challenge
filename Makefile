@@ -2,7 +2,7 @@ COMPILER=G++
 
 # todo: object files into output path, processing c / c++ files in the same time (?), nested directories for source files (?)
 C = cpp
-OUTPUT_PATH = out/production/Maze_Challenge/
+OUTPUT_PATH = 
 SOURCE_PATH = src/
 EXE = $(OUTPUT_PATH)Maze_Challenge
 
