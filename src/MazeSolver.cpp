@@ -6,6 +6,8 @@
 #include <iostream>
 #include <cmath>
 
+using namespace std;
+
 struct point {
 	int x, y;
 
@@ -58,11 +60,11 @@ struct maze_point {
 		explored[0] = explored[1] = explored[2] = explored[3] = false;
 	}
 
-	void setWalls(std::vector<int> walls) {
-		explored[0] = walls[0];
-		explored[1] = walls[1];
-		explored[2] = walls[2];
-		explored[3] = walls[3];
+	void setWalls(vector<int> walls) {
+		explored[0] = walls[0] != 0;
+		explored[1] = walls[1] != 0;
+		explored[2] = walls[2] != 0;
+		explored[3] = walls[3] != 0;
 	}
 
 	void setExplored(int direction) {
@@ -89,8 +91,8 @@ struct maze_point {
 } ;
 
 // Note: empties the passed stack
-std::vector<int> toIndexPath(std::stack<maze_point> path, int mazeSize) {
-	std::vector<int> indexPath;
+vector<int> toIndexPath(stack<maze_point> path, int mazeSize) {
+	vector<int> indexPath;
 	indexPath.reserve(path.size());
 	while (!path.empty()) {
 		indexPath.push_back(path.top().position.getIndex(mazeSize));
@@ -99,7 +101,7 @@ std::vector<int> toIndexPath(std::stack<maze_point> path, int mazeSize) {
 	return indexPath;
 }
 
-std::vector<int> MazeSolver::BreadCrumb(std::vector<std::vector<int> > walls) {
+vector<int> MazeSolver::BreadCrumb(vector<vector<int> > walls) {
 	/*
 		A brute force solver. Tries every path until it finds one that works.
 		It is biased to attempt paths that are in the direction of the end cell (opposite corner to the start).
@@ -120,9 +122,9 @@ std::vector<int> MazeSolver::BreadCrumb(std::vector<std::vector<int> > walls) {
 		9. Dump path into final path collection, from stack top to bottom
 	*/
 
-	int mazeSize = std::sqrt(walls.size());
+	int mazeSize = (int) sqrt(walls.size());
 	point pos(mazeSize - 1, mazeSize - 1);
-	std::stack<maze_point> path;
+	stack<maze_point> path;
 
 	while (pos.x != 0 && pos.y != 0) {
 		maze_point currentCell(pos);
@@ -149,28 +151,26 @@ std::vector<int> MazeSolver::BreadCrumb(std::vector<std::vector<int> > walls) {
 }
 
 // A simple example algorithm that solves the maze
-std::vector<int> MazeSolver::ExampleSolver(std::vector<std::vector<int> > walls)
+vector<int> MazeSolver::ExampleSolver(vector<vector<int> > walls)
 {
-	std::vector<int> path;
+	vector<int> path;
 	int currentCell = 0;
 	int currentDir = 3; // 0 means west, 1 means north, 2 means east, 3 means south
-	int totalNum = walls.size();
+	int totalNumber = walls.size();
 
-	if(totalNum == 0) return path;
+	if(totalNumber == 0) return path;
 	
 	// Store the status of visited cells
-	std::vector<bool> visited (walls.size(), false);
+	vector<bool> visited (totalNumber, false);
 
-	int totalNumber = walls.size();						// Total number of cells
 	int dimension = (int) sqrt((float)totalNumber);	// Get dimension of the maze
-	int currentCell = 0;								// Start from cell 0
 
 	path.push_back(currentCell);
 
 	while (currentCell < totalNumber - 1) {
 		visited[currentCell] = true;	// Mark current cell as visited
 
-		std::vector<int> neighbors;
+		vector<int> neighbors;
 
 		if (currentCell % dimension != 0 && currentCell > 0) {
 			// Left neighbor
@@ -220,9 +220,13 @@ std::vector<int> MazeSolver::ExampleSolver(std::vector<std::vector<int> > walls)
 	// Return the final path
 	return path;
 }
-std::vector<int> MazeSolver::WallFollower(std::vector<std::vector<int> > walls)
+
+
+
+vector<int> MazeSolver::WallFollower(vector<vector<int> > walls)
 {
-	std::vector<int> path;
+	//This follows the righthand wall
+	vector<int> path;
 	int currentCell = 0;
 	int currentDir = 3; // 0 means west, 1 means north, 2 means east, 3 means south
 	int totalNum = walls.size();
@@ -266,9 +270,85 @@ std::vector<int> MazeSolver::WallFollower(std::vector<std::vector<int> > walls)
 	return path;
 }
 
+int nextCellDiff(vector<int> wall, int dimension)
+{
+	//Gives the difference in index between this cell and the next one,
+	//assuming walls has only one opening.
+
+	if (wall[0] == 0) return -1;
+	if (wall[1] == 0) return -dimension;
+	if (wall[2] == 0) return 1;
+	if (wall[3] == 0) return dimension;
+
+	return 1000000000; //For the purposes of this competition, 
+					   //this should almost certainly be outside the bounds of the maze
+}
+
+int sum(vector<int> summands)
+{
+	int sum = 0;//The sum of an empty vector is zero. Why? Because I say so
+
+	for (unsigned int i = 0; i < summands.size(); i++)
+	{
+		sum += summands[i];
+	}
+
+	return sum;
+}
+
+vector<int> MazeSolver::DeadEndFiller(vector<vector<int> > walls)
+{
+	//This fills in the maze starting at the dead ends
+	vector<int> path;
+	int totalNum = walls.size();
+	int dimension = (int) std::sqrt(totalNum);
+	int fullWall_temp[] = {1, 1, 1, 1};
+	vector<int> fullWall(fullWall_temp, fullWall_temp + sizeof(fullWall_temp) / sizeof(int));
+
+	if(totalNum == 0) return path;
+
+	for (int i = 1; i < totalNum - 1; i++)
+	{
+		int j = i;
+
+		while(sum(walls[j]) == 3 && j != 0 && j < totalNum - 1)
+		{//We want a dead end and we dont want to fill the end
+			/*int diff = nextCellDiff(walls[j], dimension);
+			walls[j] = fullWall;
+			j += diff;*/
+
+			if (walls[j][0] == 0)
+			{
+				walls[j][0] = 1;
+				j -= 1;
+				walls[j][2] = 1;
+			}else if (walls[j][1] == 0)
+			{
+				walls[j][1] = 1;
+				j -= dimension;
+				walls[j][3] = 1;
+			}else if (walls[j][2] == 0)
+			{
+				walls[j][2] = 1;
+				j += 1;
+				walls[j][0] = 1;
+			}else
+			{
+				walls[j][3] = 1;
+				j += dimension;
+				walls[j][1] = 1;
+			}
+		}
+	}
+
+	path = WallFollower(walls);
+
+	return path;
+}
+
 // Validate the path for a maze
 // Returns true if the path is valid, false otherwise
-bool MazeSolver::ValidatePath(int dimension, std::vector<std::vector<int> > walls, std::vector<int> path)
+bool MazeSolver::ValidatePath(int dimension, vector<vector<int> > walls, vector<int> path)
 {
 	// Get the path length and total number of cells in a maze
 	int pathLength = path.size();
@@ -280,7 +360,7 @@ bool MazeSolver::ValidatePath(int dimension, std::vector<std::vector<int> > wall
 		return false;
 	}
 
-	// Check along the path to see if it counters any walls
+	// Check along the path to see if it encounters any walls
 	for (int i = 0; i < pathLength - 1; i++) {
 		// The difference of IDs between next cell and current cell
 		// Used to determine the relative position of next cell
@@ -315,34 +395,63 @@ bool MazeSolver::ValidatePath(int dimension, std::vector<std::vector<int> > wall
 	return true;
 }
 
+double testFunction(vector<int> (*func)(vector<vector<int> >), int dimension)
+{
+	int numRuns = 1;
+	vector<vector<int> > maze;
+	std::vector<int> path;
+	std::clock_t startTime;
+	double duration = 0;
+
+
+	for(int i = 0; i < numRuns; i++)
+	{
+		vector<vector<int> > maze;
+		std::vector<int> path;
+
+		maze = MazeGenerator::GenerateMaze(dimension);
+
+		startTime = std::clock();
+		path = func(maze);
+		duration += (std::clock() - startTime) / (double) CLOCKS_PER_SEC;
+		if (! MazeSolver::ValidatePath(dimension, maze, path))
+		{
+			printf("Error: Function Gave an invalid solution\n");
+			return -1.0f;
+		}
+	}
+	return duration / ((double) numRuns);
+}
+
 int main(int argc,char *argv[])
 {
 
-	// The dimension of the maze
-	int dimension = 100;
+	/*
+	//My laptop can't generate a maze of size 10000
+	printf("Testing ExampleSolver\n");
+	printf("n\t\t\truntime\n");
+	printf("%i\t\t\t%f\n",10,testFunction(MazeSolver::ExampleSolver, 10));     //0.001
+	printf("%i\t\t\t%f\n",100,testFunction(MazeSolver::ExampleSolver, 100));   //0.108
+	printf("%i\t\t\t%f\n",1000,testFunction(MazeSolver::ExampleSolver, 1000));//10.803
 
-	// Generate walls for the maze given the dimension
-	std::vector<std::vector<int> > walls = MazeGenerator::GenerateMaze(dimension);
+	printf("Testing BreadCrumb\n");
+	printf("n\t\t\truntime\n");
+	printf("%i\t\t\t%f\n",10,testFunction(MazeSolver::ExampleSolver, 10));    //0.001
+	printf("%i\t\t\t%f\n",100,testFunction(MazeSolver::ExampleSolver, 100));  //0.112
+	printf("%i\t\t\t%f\n",1000,testFunction(MazeSolver::ExampleSolver, 1000));//7.166
 
-	// Timer
-	// Used to compute the time spent by the maze solving algorithm
-	// Enable it if you want to measure the time
-	std::clock_t startTime;
-	startTime = std::clock();
+	
+	printf("Testing WallFollower\n");
+	printf("n\t\t\truntime\n");
+	printf("%i\t\t\t%f\n",10,testFunction(MazeSolver::WallFollower, 10));    //0.000
+	printf("%i\t\t\t%f\n",100,testFunction(MazeSolver::WallFollower, 100));  //0.043
+	printf("%i\t\t\t%f\n",1000,testFunction(MazeSolver::WallFollower, 1000));//4.171
 
-	// Get the path that solves the maze
-	std::vector<int> path = MazeSolver::SolveMaze(walls);
 
-	// Timer continued
-	double duration = (std::clock() - startTime) / (double) CLOCKS_PER_SEC;
-	std::cout<<"Time spent: "<<duration<<"\n";
+	printf("n\t\t\truntime\n");
+	printf("%i\t\t\t%f\n",10,testFunction(MazeSolver::DeadEndFiller, 10));     //0.001
+	printf("%i\t\t\t%f\n",100,testFunction(MazeSolver::DeadEndFiller, 100));   //0.151
+	printf("%i\t\t\t%f\n",1000,testFunction(MazeSolver::DeadEndFiller, 1000));//15.596
+	*/
 
-	// Validate your path
-	bool validation = MazeSolver::ValidatePath(dimension, walls, path);
-	if (validation)
-		std::cout << "Valid Path\n";
-	else
-		std::cout << "Invalid Path\n";
-
-	return 0;
 }
