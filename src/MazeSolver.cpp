@@ -8,147 +8,20 @@
 
 using namespace std;
 
-struct point {
-	int x, y;
-
-	point(int x, int y) : x(x), y(y) {
-	}
-
-	int getIndex(int size) {
-		return x + y * size;
-	}
-
-	point getRelative(int direction) {
-		switch (direction) {
-			case 0:
-				return point(x - 1, y);
-			case 1:
-				return point(x, y - 1);
-			case 2:
-				return point(x + 1, y);
-			case 3:
-				return point(x, y + 1);
-			default:
-				return point(0, 0);
-		}
-	}
-
-	int getDirection(point adjacent) {
-		int xx = adjacent.x - x;
-		switch (xx) {
-			case -1:
-				return 0;
-			case 1:
-				return 2;
-		}
-		int yy = adjacent.y - y;
-		switch (yy) {
-			case -1:
-				return 1;
-			case 1:
-				return 3;
-		}
-		return -1;
-	}
-} ;
-
-struct maze_point {
-	point position;
-	bool explored[4];
-
-	maze_point(point position) : position(position) {
-		explored[0] = explored[1] = explored[2] = explored[3] = false;
-	}
-
-	void setWalls(vector<int> walls) {
-		explored[0] = walls[0] != 0;
-		explored[1] = walls[1] != 0;
-		explored[2] = walls[2] != 0;
-		explored[3] = walls[3] != 0;
-	}
-
-	void setExplored(int direction) {
-		explored[direction] = true;
-	}
-
-	int getFirstAvailablePath() {
-		if (!explored[0]) {
-			return 0;
-		} else if (!explored[1]) {
-			return 1;
-		} else if (!explored[2]) {
-			return 2;
-		} else if (!explored[3]) {
-			return 3;
-		} else {
-			return -1;
-		}
-	}
-	
-	bool hasOneFreePath() {
-		return !(explored[0] && explored[1] && explored[2] && explored[3]);
-	}
-} ;
-
-// Note: empties the passed stack
-vector<int> toIndexPath(stack<maze_point> path, int mazeSize) {
-	vector<int> indexPath;
-	indexPath.reserve(path.size());
-	while (!path.empty()) {
-		indexPath.push_back(path.top().position.getIndex(mazeSize));
-		path.pop();
-	}
-	return indexPath;
-}
-
-vector<int> MazeSolver::BreadCrumb(vector<vector<int> > walls) {
-	/*
-		A brute force solver. Tries every path until it finds one that works.
-		It is biased to attempt paths that are in the direction of the end cell (opposite corner to the start).
-		About 130% faster than the example.
-
-		1. Begin with the final cell and an empty maze point stack
-		2. Set the position and walls of the current maze cell in a new maze point
-		3. Add the last cell (top of path stack) as an explored path, if any
-		3. Pick one free path from the current cell
-			a. If no free path is available, pop the stack elements until one has a free path
-			b. Pop the free path cell and set the current cell as that one
-			c. Get the next free path from the current cell
-		4. Set the free path as explored in the current cell
-		5. Push the current cell to the stack
-		6. Set the current cell to the next one, taken from the free path
-		7. Repeat until the current cell is the start
-		8. Push the last position to the stack to complete the path
-		9. Dump path into final path collection, from stack top to bottom
-	*/
-
-	int mazeSize = (int) sqrt(walls.size());
-	point pos(mazeSize - 1, mazeSize - 1);
-	stack<maze_point> path;
-
-	while (pos.x != 0 && pos.y != 0) {
-		maze_point currentCell(pos);
-		currentCell.setWalls(walls[currentCell.position.getIndex(mazeSize)]);
-		if (!path.empty()) {
-			currentCell.setExplored(currentCell.position.getDirection(path.top().position));
-		}
-		int direction = currentCell.getFirstAvailablePath();
-		if (direction == -1) {
-			while (!path.top().hasOneFreePath()) {
-				path.pop();
-			}
-			currentCell = path.top();
-			path.pop();
-			direction = currentCell.getFirstAvailablePath();
-		}
-		currentCell.setExplored(direction);
-		path.push(currentCell);
-		pos = currentCell.position.getRelative(direction);
-	}
-	path.push(maze_point(pos));
-
-	return toIndexPath(path, mazeSize);
-}
+/*
+ * Team Mazer
+ *
+ * Members:
+ *   Max Krogius
+ *   Eduardo Coronado-Montoya
+ *   Celina Vivian
+ *   David Lavoie-Boutin
+ *   Aleksei
+ *
+ *   Our fastest algorithm is WallFollower and that function should be considered our submission.
+ *   We have also included some other algorithms we tried, just to show our work.
+ *
+ */
 
 // A simple example algorithm that solves the maze
 vector<int> MazeSolver::ExampleSolver(vector<vector<int> > walls)
@@ -222,10 +95,10 @@ vector<int> MazeSolver::ExampleSolver(vector<vector<int> > walls)
 }
 
 
-
+//This is our submission!
 vector<int> MazeSolver::WallFollower(vector<vector<int> > walls)
 {
-	//This follows the righthand wall
+	//This is a simple yet quick algorithm which follows the righthand wall
 	vector<int> path;
 	int currentCell = 0;
 	int currentDir = 3; // 0 means west, 1 means north, 2 means east, 3 means south
@@ -235,7 +108,7 @@ vector<int> MazeSolver::WallFollower(vector<vector<int> > walls)
 
 	
 
-	while(currentCell != totalNum - 1)
+	while(currentCell < totalNum - 1)
 	{
 		//see if I can go right, then straight, then left, then back
 		path.push_back(currentCell);
@@ -248,7 +121,6 @@ vector<int> MazeSolver::WallFollower(vector<vector<int> > walls)
 		else if (walls[currentCell][(currentDir + 2)%4] == 0)//back
 		{
 			currentDir = (currentDir + 2)%4;
-			//path.pop_back();
 		}
 
 		
@@ -268,20 +140,6 @@ vector<int> MazeSolver::WallFollower(vector<vector<int> > walls)
 	path.push_back(currentCell);
 
 	return path;
-}
-
-int nextCellDiff(vector<int> wall, int dimension)
-{
-	//Gives the difference in index between this cell and the next one,
-	//assuming walls has only one opening.
-
-	if (wall[0] == 0) return -1;
-	if (wall[1] == 0) return -dimension;
-	if (wall[2] == 0) return 1;
-	if (wall[3] == 0) return dimension;
-
-	return 1000000000; //For the purposes of this competition, 
-					   //this should almost certainly be outside the bounds of the maze
 }
 
 int sum(vector<int> summands)
@@ -313,9 +171,8 @@ vector<int> MazeSolver::DeadEndFiller(vector<vector<int> > walls)
 
 		while(sum(walls[j]) == 3 && j != 0 && j < totalNum - 1)
 		{//We want a dead end and we dont want to fill the end
-			/*int diff = nextCellDiff(walls[j], dimension);
-			walls[j] = fullWall;
-			j += diff;*/
+
+
 
 			if (walls[j][0] == 0)
 			{
@@ -345,6 +202,213 @@ vector<int> MazeSolver::DeadEndFiller(vector<vector<int> > walls)
 
 	return path;
 }
+
+vector<int> MazeSolver::DepthFirstSearch(vector<vector<int> > walls)
+{
+	vector<int> stack;
+	vector<int> path;
+	const int totalNum = walls.size();
+	const int dimension = (int) sqrt(totalNum);
+	bool *visited = new bool[totalNum];
+	int cell = 0;
+	stack.push_back(cell);
+	
+	//init visited[]
+	for (int i = 0; i < totalNum; i++)
+		visited[i] = false;
+
+	while(true)
+	{
+		cell = stack.back();
+
+		if (cell == totalNum - 1)
+			break;
+
+		visited[cell] = true;
+
+		if (walls[cell][3] == 0 && !visited[cell + dimension])//go south first
+			stack.push_back(cell + dimension);
+		else if (walls[cell][2] == 0 && !visited[cell + 1])//go east second
+			stack.push_back(cell + 1);
+		else if (walls[cell][0] == 0 && !visited[cell - 1])//go west third
+			stack.push_back(cell - 1);
+		else if (walls[cell][1] == 0 && !visited[cell - dimension])//go north last
+			stack.push_back(cell - dimension);
+		else
+			stack.pop_back();
+	}
+
+	delete [] visited;
+	return stack;
+}
+
+vector<int> MazeSolver::OptimizedDFS(vector<vector<int> > walls)
+{
+	vector<int> stack;
+	vector<int> path;
+	const int totalNum = walls.size();
+	const int dimension = (int) sqrt(totalNum);
+	short *visited = new short[totalNum];
+	bool hasFoundLowerWall = false;
+	bool hasFoundSideWall = false;
+	int lowerWallTest = totalNum - dimension - 1;//Precompute the bound for lower wall
+	int sideWallTest = dimension - 1;
+	int cell = 0;
+	stack.push_back(cell);
+	
+	//init visited[]
+	for (int i = 0; i < totalNum; i++)
+		visited[i] = false;
+
+	while(true)
+	{
+		cell = stack.back();
+
+
+		//Check if we are done
+		if (cell == totalNum - 1)
+				break;
+
+		if (!hasFoundLowerWall && cell > lowerWallTest)
+		{
+			//If we are on the lower wall
+			hasFoundLowerWall = true;
+
+
+
+			//Follow our path back to the start
+			int prevCell = 0;
+			int curCell;
+			for (unsigned int i = 1; i < stack.size(); i++)
+			{
+				prevCell = stack[i - 1];
+				curCell = stack[i];
+
+				if (curCell - prevCell == 1)//going east
+				{
+					if (prevCell + dimension < totalNum)
+						visited[prevCell + dimension] = true;
+				}
+				else if (curCell - prevCell == -1)//going west
+				{
+					if (prevCell - dimension >= 0)
+						visited[prevCell - dimension] = true;
+				}
+				else if (curCell - prevCell == dimension)//going south
+				{
+					if (prevCell % dimension != 0)
+						visited[prevCell - 1] = true;
+				}
+				else //going north
+				{
+					if (prevCell % dimension != dimension - 1)
+						visited[prevCell + 1] = true;
+				}
+			
+			}
+
+			if (curCell - prevCell == 1)//going east
+			{
+				if (curCell + dimension < totalNum)
+					visited[curCell + dimension] = true;
+			}
+			else if (curCell - prevCell == -1)//going west
+			{
+				if (curCell - dimension >= 0)
+					visited[curCell - dimension] = true;
+			}
+			else if (curCell - prevCell == dimension)//going south
+			{
+				if (curCell % dimension != 0)
+					visited[curCell - 1] = true;
+			}
+			else //going north
+			{
+				if (curCell % dimension != dimension - 1)
+					visited[curCell + 1] = true;
+			}
+
+
+		}
+
+		if (!hasFoundSideWall && cell % dimension == sideWallTest)
+		{
+			//If we are on the side wall
+			hasFoundSideWall = true;
+
+
+
+			//Follow our path back to the start
+			int prevCell = 0;
+			int curCell;
+			for (unsigned int i = 1; i < stack.size(); i++)
+			{
+				prevCell = stack[i - 1];
+				curCell = stack[i];
+
+				if (curCell - prevCell == 1)//going east
+				{
+					if (prevCell - dimension >= 0)
+						visited[prevCell - dimension] = true;
+				}
+				else if (curCell - prevCell == -1)//going west
+				{
+					if (prevCell + dimension < totalNum)
+						visited[prevCell + dimension] = true;
+				}
+				else if (curCell - prevCell == dimension)//going south
+				{
+					if (prevCell % dimension != dimension - 1)
+						visited[prevCell + 1] = true;
+				}
+				else //going north
+				{
+					if (prevCell % dimension != 0)
+						visited[prevCell - 1] = true;
+				}
+			}
+
+
+			if (curCell - prevCell == 1)//going east
+			{
+				if (curCell - dimension >= 0)
+					visited[curCell - dimension] = true;
+			}
+			else if (curCell - prevCell == -1)//going west
+			{
+				if (curCell + dimension < totalNum)
+					visited[curCell + dimension] = true;
+			}
+			else if (curCell - prevCell == dimension)//going south
+			{
+				if (curCell % dimension != dimension - 1)
+					visited[curCell + 1] = true;
+			}
+			else //going north
+			{
+				if (curCell % dimension != 0)
+					visited[curCell - 1] = true;
+			}
+		}
+
+		visited[cell] = 1;
+
+		if (walls[cell][3] == 0 && !visited[cell + dimension])//go south first
+			stack.push_back(cell + dimension);
+		else if (walls[cell][2] == 0 && !visited[cell + 1])//go east second
+			stack.push_back(cell + 1);
+		else if (walls[cell][0] == 0 && !visited[cell - 1])//go west third
+			stack.push_back(cell - 1);
+		else if (walls[cell][1] == 0 && !visited[cell - dimension])//go north last
+			stack.push_back(cell - dimension);
+		else
+			stack.pop_back();
+	}
+
+	delete [] visited;
+	return stack;
+}
+
 
 // Validate the path for a maze
 // Returns true if the path is valid, false otherwise
@@ -397,7 +461,7 @@ bool MazeSolver::ValidatePath(int dimension, vector<vector<int> > walls, vector<
 
 double testFunction(vector<int> (*func)(vector<vector<int> >), int dimension)
 {
-	int numRuns = 1;
+	int numRuns = 3;
 	vector<vector<int> > maze;
 	std::vector<int> path;
 	std::clock_t startTime;
@@ -425,33 +489,37 @@ double testFunction(vector<int> (*func)(vector<vector<int> >), int dimension)
 
 int main(int argc,char *argv[])
 {
-
-	/*
 	//My laptop can't generate a maze of size 10000
-	printf("Testing ExampleSolver\n");
+	/*printf("Testing ExampleSolver\n");
 	printf("n\t\t\truntime\n");
 	printf("%i\t\t\t%f\n",10,testFunction(MazeSolver::ExampleSolver, 10));     //0.001
 	printf("%i\t\t\t%f\n",100,testFunction(MazeSolver::ExampleSolver, 100));   //0.108
 	printf("%i\t\t\t%f\n",1000,testFunction(MazeSolver::ExampleSolver, 1000));//10.803
-
-	printf("Testing BreadCrumb\n");
-	printf("n\t\t\truntime\n");
-	printf("%i\t\t\t%f\n",10,testFunction(MazeSolver::ExampleSolver, 10));    //0.001
-	printf("%i\t\t\t%f\n",100,testFunction(MazeSolver::ExampleSolver, 100));  //0.112
-	printf("%i\t\t\t%f\n",1000,testFunction(MazeSolver::ExampleSolver, 1000));//7.166
+	
 
 	
-	printf("Testing WallFollower\n");
-	printf("n\t\t\truntime\n");
-	printf("%i\t\t\t%f\n",10,testFunction(MazeSolver::WallFollower, 10));    //0.000
-	printf("%i\t\t\t%f\n",100,testFunction(MazeSolver::WallFollower, 100));  //0.043
-	printf("%i\t\t\t%f\n",1000,testFunction(MazeSolver::WallFollower, 1000));//4.171
-
-
+	printf("Testing DeadEndFiller\n");
 	printf("n\t\t\truntime\n");
 	printf("%i\t\t\t%f\n",10,testFunction(MazeSolver::DeadEndFiller, 10));     //0.001
 	printf("%i\t\t\t%f\n",100,testFunction(MazeSolver::DeadEndFiller, 100));   //0.151
 	printf("%i\t\t\t%f\n",1000,testFunction(MazeSolver::DeadEndFiller, 1000));//15.596
-	*/
 
+	printf("Testing DepthFirstSearch\n");
+	printf("n\t\t\truntime\n");
+	printf("%i\t\t\t%f\n",10,testFunction(MazeSolver::DepthFirstSearch, 10));     //0.001
+	printf("%i\t\t\t%f\n",100,testFunction(MazeSolver::DepthFirstSearch, 100));   //0.130
+	printf("%i\t\t\t%f\n",1000,testFunction(MazeSolver::DepthFirstSearch, 1000));//12.074*/
+
+
+	printf("Testing WallFollower\n");
+	printf("n\t\t\truntime\n");
+	printf("%i\t\t\t%f\n",10,testFunction(MazeSolver::WallFollower, 10));    //0.000
+	printf("%i\t\t\t%f\n",100,testFunction(MazeSolver::WallFollower, 100));  //0.043
+	printf("%i\t\t\t%f\n",500,testFunction(MazeSolver::WallFollower, 1000));//4.171
+
+	printf("Testing OptimizedDFS\n");
+	printf("n\t\t\truntime\n");
+	printf("%i\t\t\t%f\n",10,testFunction(MazeSolver::OptimizedDFS, 10));     //0.001
+	printf("%i\t\t\t%f\n",100,testFunction(MazeSolver::OptimizedDFS, 100));   //0.130
+	printf("%i\t\t\t%f\n",500,testFunction(MazeSolver::OptimizedDFS, 1000));//12.074
 }
